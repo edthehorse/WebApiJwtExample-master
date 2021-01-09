@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+
+    <meta charset="UTF-8">
+    <title>Web Api JWT Example</title>
+
+    <script  src="https://code.jquery.com/jquery-3.2.1.min.js"
+      integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous">
+
+    </script>
+
+      <style>
+          div
+          {   margin-top: 50px; }
+      </style>
+
+  </head>
+
+  <body>
+      <h1>Example of using JWT to secure a Web Api using ASP.NET Core 2.0</h1>
+
+      <div style="margin: 50px auto; width:600px;">
+
+          <div id="btLoginContainer">
+
+              <input type="text" name="username" id="username" placeholder="Username" />     @*See script below: '#username').val()*@
+             
+              <input type="password" name="password" id="password" placeholder="Password" /> @*See script below: password: $('#password')*@
+                        
+              <button id="btLogin">Login</button><br>                                        @*Calls btLogin script below *@
+
+              <label>(Use the same password as the username to sign in)</label>
+
+          </div>
+
+          <div id="btLogoutContainer">
+
+              <button id="btLogout">Logout</button>                                          @*btLogout id is used as label for script below!*@
+
+          </div>
+
+          <div>
+
+            <label>Action that requires the user to have been authenticated: </label>
+              
+             <button id="btGetUserDetails">Get User Details</button>                         @*Separate button Simply prints {"username":"ed"}*@
+                     
+          </div>          
+
+      </div>
+
+      <div style="margin: 50px; background: lightgray" id="responseContainer">
+          
+      </div>
+      <script>
+
+
+          $(function () {
+              $('#btLogin').click(function () {
+                  $.post("/token", $.param({ username: $('#username').val(), password: $('#password').val() })).done(function (token) {
+                      localStorage.setItem("token", token); // Does a post?  Stores the token in memory.
+                      $('#btLoginContainer').hide();
+                      $('#btLogoutContainer').show();       // Now show Logout button in btLogoutContainer.
+                      var message = "<p>Token received and saved in local storage under the key 'token'</p>";
+                      message += "<p>Token Value: </p><p style='word-wrap:break-word'>" + token + "</p>"; // Token : eyJhb....
+                      $('#responseContainer').html(message); // responseContainer is embedded in a Div above. // DOES THIS ENABLE THE [AUTHORIZE] Tag?]
+                  }).fail(handleError);
+              });
+
+
+              $('#btLogout').click(function () {        /* Log Out */
+
+                  localStorage.removeItem("token");     // Remove token for memory.  
+
+                  $('#btLogoutContainer').hide();
+
+                  $('#btLoginContainer').show();        // Now show the Login container.
+
+                  $('#responseContainer').html("<p>Token deleted from local storage</p>"); // responseContainer is embedded in a Div above.
+              });
+
+
+              $('#btGetUserDetails').click(function ()
+              {                                               // If button clicked then ..
+                  $.get("/home/getuserdetails").done(function (userDetails) // ... send to the controller ! getuserDetails action. Pass userDetails.
+                  {                         
+                      $('#responseContainer').html("<pre>" + JSON.stringify(userDetails) + "</pre>");  // Stick it in the response header. // responseContainer is embedded in a Div above.
+
+                  }).fail(handleError);                                                                // Otherwise handleError ?
+              });
+
+              function handleError(xhr, textStatus, errorThrown) {          // If ERROR
+              
+                  if (xhr.status == 401)
+                 
+                      $('#responseContainer').html("Unauthorized request"); // 401 Error
+                  
+              else {
+
+                  var message = "<p>Status code: " + xhr.status + "</p>";   // Status code:400 error ?
+
+                  message += "<pre>" + xhr.responseText + "</pre>";         // Stick the error message in the response header? 
+
+                $('#responseContainer').html(message);
+              }
+          }
+
+          function isUserLoggedIn(){
+              return localStorage.getItem("token") !== null;
+          }        
+
+          function getSavedToken() {
+              return localStorage.getItem("token");
+          }
+
+          $.ajaxSetup({ // Before the AUTHORIZATION request is made...
+              beforeSend: function(xhr) {
+                  if (isUserLoggedIn()) {
+                      xhr.setRequestHeader('Authorization', 'Bearer ' + getSavedToken());  // the token is put in the header ready for sending.                    
+                  }
+              }
+          });
+
+
+
+
+
+
+
+              if (isUserLoggedIn()) { 
+
+                  $('#btLoginContainer').hide();
+                  $('#btLogoutContainer').show();
+
+              } else {
+
+                  $('#btLoginContainer').show();
+                  $('#btLogoutContainer').hide();                  
+              }
+          });
+      </script>
+  </body>
+</html>
